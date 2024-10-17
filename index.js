@@ -50,12 +50,17 @@ client.once("ready", async () => {
         },
       ],
     },
+    // Add join command for registration
+    {
+      name: "join",
+      description: "Joins the voice channel you are currently in",
+    },
   ];
 
   const rest = new REST({ version: "10" }).setToken(token);
 
   try {
-    // Clear existing commands from the specific guild and register the new command
+    // Register commands for the guild
     await rest.put(Routes.applicationGuildCommands(clientId, guildId), {
       body: commands,
     });
