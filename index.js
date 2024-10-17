@@ -1,63 +1,88 @@
-// Load environment variables
-require("dotenv").config();
+require("dotenv").config(); // Load environment variables from .env file
 const {
   Client,
   IntentsBitField,
+  Collection,
   REST,
   Routes,
-  SlashCommandBuilder,
 } = require("discord.js");
+const fs = require("fs");
 
-// Now load the environment variables from .env
-const token = process.env.TOKEN; // Use TOKEN from .env
-const CLIENT_ID = process.env.CLIENT_ID; // Use CLIENT_ID from .env
-const GUILD_ID = process.env.GUILD_ID; // Use GUILD_ID from .env
+// Access your token and client ID from the environment variables
+const token = process.env.TOKEN; // Your bot token
+const clientId = process.env.CLIENT_ID; // Your client ID
+const guildId = process.env.GUILD_ID; // Your guild ID (if needed)
 
 // Create a new client instance
 const client = new Client({
   intents: [
     IntentsBitField.Flags.Guilds,
-    IntentsBitField.Flags.GuildMembers,
     IntentsBitField.Flags.GuildMessages,
     IntentsBitField.Flags.MessageContent,
   ],
 });
 
-// When the client is ready, run this code once
-client.on("ready", () => {
+// Load commands into the bot
+client.commands = new Collection();
+const commandFiles = fs
+  .readdirSync("./commands")
+  .filter((file) => file.endsWith(".js"));
+
+for (const file of commandFiles) {
+  const command = require(`./commands/${file}`);
+  client.commands.set(command.data.name, command);
+}
+
+// Event handler for when the bot is ready
+client.once("ready", async () => {
   console.log(`Logged in as ${client.user.tag}!`);
-});
 
-// Slash Command Setup
-const commands = [
-  new SlashCommandBuilder()
-    .setName("ping")
-    .setDescription("Replies with Pong!"),
-];
+  const commands = [
+    {
+      name: "tag",
+      description: 'Tags a user and says "the one piece is real @..."',
+      options: [
+        {
+          type: 6, // USER type
+          name: "target",
+          description: "Select a user to tag",
+          required: true,
+        },
+      ],
+    },
+  ];
 
-// Register slash commands
-const rest = new REST({ version: "10" }).setToken(token);
+  const rest = new REST({ version: "10" }).setToken(token);
 
-(async () => {
   try {
-    console.log("Started refreshing application (/) commands.");
-
-    await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
-
+    // Clear existing commands from the specific guild and register the new command
+    await rest.put(Routes.applicationGuildCommands(clientId, guildId), {
+      body: commands,
+    });
     console.log("Successfully reloaded application (/) commands.");
   } catch (error) {
-    console.error(error);
+    console.error("Error registering commands:", error);
   }
-})();
+});
 
-// Handle interaction events (Slash Command)
+// Event handler for interaction (slash command)
 client.on("interactionCreate", async (interaction) => {
   if (!interaction.isChatInputCommand()) return;
 
-  if (interaction.commandName === "ping") {
-    await interaction.reply("Pong!");
+  const command = client.commands.get(interaction.commandName);
+
+  if (!command) return;
+
+  try {
+    await command.execute(interaction);
+  } catch (error) {
+    console.error(error);
+    await interaction.reply({
+      content: "There was an error executing this command!",
+      ephemeral: true,
+    });
   }
 });
 
-// Log in to Discord
+// Log the bot into Discord
 client.login(token);
