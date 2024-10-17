@@ -1,0 +1,9 @@
+{
+  "dependencies": {
+    "@discordjs/voice": "^0.17.0",
+    "bufferutil": "^4.0.8",
+    "discord.js": "^14.16.3",
+    "dotenv": "^16.4.5",
+    "utf-8-validate": "^6.0.4"
+  }
+}
