@@ -50,10 +50,13 @@ client.once("ready", async () => {
         },
       ],
     },
-    // Add join command for registration
     {
       name: "join",
       description: "Joins the voice channel you are currently in",
+    },
+    {
+      name: "playonepiece",
+      description: "Plays the One Piece theme song in the voice channel",
     },
   ];
 
